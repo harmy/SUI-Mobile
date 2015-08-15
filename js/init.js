@@ -6,7 +6,7 @@
     var $page = $(".page-current");
     if(!$page[0]) $page = $(".page").addClass("page-current");
     return $page;
-  } 
+  }
 
   //初始化页面中的JS组件
   $.initPage = function(page) {
@@ -18,6 +18,7 @@
     $.initPullToRefresh($content);
     $.initInfiniteScroll($content);
     $.initCalendar($content);
+    $.initSortable();
 
     //extend
     if($.initSwiper) $.initSwiper($content);
