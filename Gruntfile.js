@@ -36,6 +36,7 @@ module.exports = function(grunt) {
             ' *\n' +
             ' * =====================================================\n' +
             ' */\n',
+            //,
 
         clean: {
             dist: ['<%= meta.distPath %>', '<%= meta.docsDistPath %>']
@@ -44,7 +45,7 @@ module.exports = function(grunt) {
         concat: {
             sm: {
               options: {
-                  banner: '<%= banner %>'
+                  banner: '<%= banner %>;$.smVersion = "<%= pkg.version %>";'
               },
               src: [
                   'js/intro.js',
@@ -53,7 +54,7 @@ module.exports = function(grunt) {
                   'js/detect.js',
                   'js/zepto-adapter.js',
                   'js/fastclick.js',
-                  'js/template7.js',
+                  //'js/template7.js',
                   'js/page.js',
                   'js/tabs.js',
                   'js/modal.js',
@@ -197,7 +198,8 @@ module.exports = function(grunt) {
 
         cssmin: {
             options: {
-                keepSpecialComments: '*' // keep all important comments
+                keepSpecialComments: '*' ,// keep all important comments
+                advanced: false
             },
             sm: {
                 src: '<%= meta.distPath %>css/<%= pkg.name %>.css',

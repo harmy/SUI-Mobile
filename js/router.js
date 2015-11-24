@@ -22,14 +22,17 @@
     this.stack.setItem("forward", "[]");  //前进栈, {url, pageid, stateid}
     this.init();
     this.xhr = null;
+    // 解决各个webview针对页面重新加载（包括后退造成的）时History State的处理差异，加此标志位
+    this.newLoaded = true;
   }
 
   Router.prototype.defaults = {
   };
 
   Router.prototype.init = function() {
-    var currentPage = this.getCurrentPage();
-    if(!currentPage[0]) currentPage = $(".page").eq(0).addClass("page-current");
+    var currentPage = this.getCurrentPage(),
+      page1st = $(".page").eq(0);
+    if(!currentPage[0]) currentPage = page1st.addClass("page-current");
     var hash = location.hash;
     if(currentPage[0] && !currentPage[0].id) currentPage[0].id = (hash ? hash.slice(1) : this.genRandomID());
 
@@ -43,37 +46,39 @@
       currentPage = newCurrentPage;
     }
 
-    //第一次打开的时候需要pushstate，不这么做，刷新之后第一次加载新页面会无法后退
-    var state = history.state;
-    if(!state) {
-      var id = this.genStateID();
-      this.pushState(location.href, id);
-      this.pushBack({
-        url: location.href,
-        pageid: currentPage[0].id,
-        id: id
-      });
-      this.setCurrentStateID(id);
-    }
+    var id = this.genStateID(),
+      curUrl = location.href,
+      // 需要设置入口页的Url，方便用户在类似xx/yy#step2 的页面刷新加载后 点击后退可以回到入口页
+      entryUrl = curUrl.split('#')[0];
 
+    // 在页面加载时，可能会包含一个非空的状态对象history.state。这种情况是会发生的，例如，如果页面中使用pushState()或replaceState()方法设置了一个状态对象，然后用户重启了浏览器。https://developer.mozilla.org/en-US/docs/Web/API/History_API#Reading_the_current_state
+    history.replaceState({url: curUrl, id: id}, '', curUrl);
+    this.setCurrentStateID(id);
+    this.pushBack({
+      url: entryUrl,
+      pageid: '#' + page1st[0].id,
+      id: id
+    });
     window.addEventListener('popstate', $.proxy(this.onpopstate, this));
   }
 
   //加载一个页面,传入的参数是页面id或者url
   Router.prototype.loadPage = function(url) {
 
+    // android chrome 在移动端加载页面时不会触发一次‘popstate’事件
+    this.newLoaded && (this.newLoaded = false)
     this.getPage(url, function(page) {
 
       var pageid = this.getCurrentPage()[0].id;
       this.pushBack({
         url: url,
-        pageid: "#"+ pageid,
+        pageid: "#" + pageid,
         id: this.getCurrentStateID()
       });
 
       //删除全部forward
       var forward = JSON.parse(this.state.getItem("forward") || "[]");
-      for(var i=0;i<forward.length;i++) {
+      for(var i = 0; i < forward.length; i++) {
         $(forward[i].pageid).each(function() {
           var $page = $(this);
           if($page.data("page-remote")) $page.remove();
@@ -110,14 +115,14 @@
         rightPage.trigger("pageInitInternal", [rightPage[0].id, rightPage]);
       });
     } else {
-        leftPage.trigger("pageAnimationStart", [rightPage[0].id, rightPage]);
-        leftPage.removeClass(removeClasses).addClass('page-from-left-to-center');
-        rightPage.removeClass(removeClasses).addClass('page-from-center-to-right');
-        leftPage.animationEnd(function() {
-          leftPage.removeClass(removeClasses).addClass("page-current");
-          leftPage.trigger("pageAnimationEnd", [leftPage[0].id, leftPage]);
-          leftPage.trigger("pageReinit", [leftPage[0].id, leftPage]);
-        });
+      leftPage.trigger("pageAnimationStart", [rightPage[0].id, rightPage]);
+      leftPage.removeClass(removeClasses).addClass('page-from-left-to-center');
+      rightPage.removeClass(removeClasses).addClass('page-from-center-to-right');
+      leftPage.animationEnd(function() {
+        leftPage.removeClass(removeClasses).addClass("page-current");
+        leftPage.trigger("pageAnimationEnd", [leftPage[0].id, leftPage]);
+        leftPage.trigger("pageReinit", [leftPage[0].id, leftPage]);
+      });
       rightPage.animationEnd(function() {
         rightPage.removeClass(removeClasses);
       });
@@ -141,20 +146,22 @@
     var stack = JSON.parse(this.stack.getItem("back"));
     if(stack.length) {
       history.back();
-    } else {
+    } else if(url) {
       location.href = url;
+    } else {
+      console.warn('[router.back]: can not back')
     }
   }
 
   //后退
-  Router.prototype._back = function() {
+  Router.prototype._back = function(url) {
     var h = this.popBack();
     var currentPage = this.getCurrentPage();
     var newPage = $(h.pageid);
     if(!newPage[0]) return;
-    this.pushForward({url: location.href, pageid: "#"+currentPage[0].id, id: this.getCurrentStateID()});
-    this.animatePages(newPage, currentPage, true);
+    this.pushForward({url: location.href, pageid: "#" + currentPage[0].id, id: this.getCurrentStateID()});
     this.setCurrentStateID(h.id);
+    this.animatePages(newPage, currentPage, true);
   }
 
   //前进
@@ -163,9 +170,9 @@
     var currentPage = this.getCurrentPage();
     var newPage = $(h.pageid);
     if(!newPage[0]) return;
-    this.pushBack({url: location.href, pageid: "#"+currentPage[0].id, id: this.getCurrentStateID()});
-    this.animatePages(currentPage, newPage);
+    this.pushBack({url: location.href, pageid: "#" + currentPage[0].id, id: this.getCurrentStateID()});
     this.setCurrentStateID(h.id);
+    this.animatePages(currentPage, newPage);
   }
 
   Router.prototype.pushState = function(url, id) {
@@ -174,7 +181,9 @@
 
   Router.prototype.onpopstate = function(d) {
     var state = d.state;
-    if(!state) {//刷新再后退导致无法取到state
+    // 刷新再后退导致无法取到state
+    if(!state || this.newLoaded) {
+      this.newLoaded = false;
       return;
     }
 
@@ -183,7 +192,7 @@
     }
     var forward = state.id > this.getCurrentStateID();
     if(forward) this._forward();
-    else this._back();
+    else this._back(state.url);
   }
 
 
@@ -194,8 +203,8 @@
     this.dispatch("pageLoadStart");
 
     if(this.xhr && this.xhr.readyState < 4) {
-      xhr.onreadystatechange = noop;
-      xhr.abort();
+      this.xhr.onreadystatechange = function(){};
+      this.xhr.abort();
       this.dispatch("pageLoadCancel");
     }
 
@@ -281,6 +290,8 @@
   };
 
   $(function() {
+    // 用户可选关闭router功能
+    if(!$.smConfig.router) return;
     var router = $.router = new Router();
     $(document).on("click", "a", function(e) {
       var $target = $(e.currentTarget);
