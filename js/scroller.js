@@ -4,27 +4,7 @@
 /* global Zepto:true */
 + function($) {
     "use strict";
-    //比较一个字符串版本号
-    //a > b === 1
-    //a = b === 0
-    //a < b === -1
-    var compareVersion = function(a, b) {
-        var as = a.split('.');
-        var bs = b.split('.');
-        if (a === b) return 0;
-
-        for (var i = 0; i < as.length; i++) {
-            var x = parseInt(as[i]);
-            if (!bs[i]) return 1;
-            var y = parseInt(bs[i]);
-            if (x < y) return -1;
-            if (x > y) return 1;
-        }
-        return 1;
-    };
-
-
-        //重置zepto自带的滚动条
+    //重置zepto自带的滚动条
     var _zeptoMethodCache = {
         "scrollTop": $.fn.scrollTop,
         "scrollLeft": $.fn.scrollLeft
@@ -65,7 +45,7 @@
 
         var type = this.options.type;
         //auto的type,系统版本的小于4.4.0的安卓设备和系统版本小于6.0.0的ios设备，启用js版的iscoll
-        var useJSScroller = (type === 'js') || (type === 'auto' && ($.os.android && compareVersion('4.4.0', $.os.version) > -1) || ($.os.ios && compareVersion('6.0.0', $.os.version) > -1));
+        var useJSScroller = (type === 'js') || (type === 'auto' && ($.device.android && $.compareVersion('4.4.0', $.device.osVersion) > -1) || ($.device.ios && $.compareVersion('6.0.0', $.device.osVersion) > -1));
 
         if (useJSScroller) {
 
@@ -90,6 +70,8 @@
             var options = {
                 probeType: 1,
                 mouseWheel: true,
+                //解决安卓js模式下，刷新滚动条后绑定的事件不响应
+                click:true
             };
             if (ptr) {
                 options.ptr = true;
@@ -103,12 +85,12 @@
             $.pullToRefreshTrigger = $._pullToRefreshJSScroll.pullToRefreshTrigger;
             $.destroyToRefresh = $._pullToRefreshJSScroll.destroyToRefresh;
             $pageContent.addClass('javascript-scroll');
-            
+
             //如果页面本身已经进行了原生滚动，那么把这个滚动换成JS的滚动
             var nativeScrollTop = this.$pageContent[0].scrollTop;
             if(nativeScrollTop) {
-              this.$pageContent[0].scrollTop = 0;
-              this.scrollTop(nativeScrollTop);
+                this.$pageContent[0].scrollTop = 0;
+                this.scrollTop(nativeScrollTop);
             }
         } else {
             $pageContent.addClass('native-scroll');
@@ -203,7 +185,6 @@
 
         this.each(function() {
 
-
             var $this = $(this);
 
             var options = $.extend({}, $this.dataset(), typeof option === 'object' && option);
@@ -218,7 +199,7 @@
             if (typeof option === 'string' && typeof data[option] === 'function') {
                 internal_return = data[option].apply(data, args);
                 if (internal_return !== undefined)
-                    return false;
+            return false;
             }
 
         });
@@ -254,7 +235,7 @@
             $(content).scroller('refresh');
         } else {
             $('.javascript-scroll').each(function() {
-              $(this).scroller('refresh');
+                $(this).scroller('refresh');
             });
         }
 
