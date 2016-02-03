@@ -54,7 +54,6 @@ module.exports = function(grunt) {
                   'js/zepto-adapter.js',
                   'js/device.js',
                   'js/fastclick.js',
-                  'js/tabs.js',
                   'js/modal.js',
                   'js/calendar.js',
                   'js/picker.js',
@@ -62,12 +61,15 @@ module.exports = function(grunt) {
                   'js/iscroll.js',
                   'js/scroller.js',
                   'js/sortable.js',
+                  'js/tabs.js',
+                  'js/fixed-tab.js',
                   'js/pull-to-refresh-js-scroll.js',
                   'js/pull-to-refresh.js',
                   'js/infinite-scroll.js',
                   'js/searchbar.js',
                   'js/panels.js',
                   'js/router.js',
+                  'js/last-position.js',
                   'js/init.js',
                   'js/scroll-fix.js'
               ],
@@ -136,15 +138,17 @@ module.exports = function(grunt) {
         },
 
         copy: {
+            /*
             fonts: {
                 expand: true,
                 src: 'fonts/*',
-                dest: '<%= meta.distPath %>'
+                dest: '<%= meta.docsDistPath %>'
             },
+            */
             img: {
                 expand: true,
                 src: 'img/*',
-                dest: '<%= meta.distPath %>'
+                dest: '<%= meta.doclessetsPath %>'
             },
             docs: {
                 expand: true,
